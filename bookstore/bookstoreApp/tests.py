@@ -1,4 +1,5 @@
 from django.test import TestCase
+from rest_framework.test import APITestCase, APIClient
 import json
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -8,6 +9,7 @@ from .serializers import BookSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 # Create your tests here.
+#python manage.py test bookstoreApp.tests.BookCRUDViewTest
 class BookCRUDViewTest(APITestCase):
     def setUp(self):
         # Set up initial data for the test
@@ -66,3 +68,38 @@ class BookCRUDViewTest(APITestCase):
         }
         response = self.client.post(self.url, json.dumps(data), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.jwt_token}')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+#python manage.py test bookstoreApp.tests.BookViewTestCase     
+class BookViewTestCase(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')     
+        self.book1 = Book.objects.create(
+            title='Test Book1',
+            description='Test Description',
+            author=self.user,
+            cover_image='http://example.com/cover.jpg',
+            price=10.0
+        )
+        self.book2 = Book.objects.create(
+            title='Test Book2',
+            description='Test Description',
+            author=self.user,
+            cover_image='http://example.com/cover.jpg',
+            price=15.0
+        )
+        self.url = reverse('book')  
+
+    def test_get_all_books(self):
+        response = self.client.get(self.url)
+        books = Book.objects.all()
+        serializer = BookSerializer(books, many=True)        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, serializer.data)
+
+    def test_get_books_with_title_filter(self):
+        response = self.client.get(self.url, {'title': 'Test Book 1'})
+        books = Book.objects.filter(title='Test Book 1')
+        serializer = BookSerializer(books, many=True)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, serializer.data)

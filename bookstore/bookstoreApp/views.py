@@ -10,6 +10,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import json
 from rest_framework import status
+from rest_framework_xml.renderers import XMLRenderer
+from rest_framework.renderers import JSONRenderer
+from rest_framework.negotiation import DefaultContentNegotiation
 
 
 # Create your views here.
@@ -24,7 +27,12 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     
 class BookView(APIView):    
-    #http://example.com/api/purchases?username=denvercoder9
+    #http://example.com/api/purchases?title=Der%20Turm
+     authentication_classes = []
+     permission_classes = []
+     renderer_classes = [XMLRenderer,JSONRenderer] #,
+   
+     
      def get_queryset(self):       
         queryset = Book.objects.all()
         title = self.request.query_params.get('title')
@@ -32,15 +40,30 @@ class BookView(APIView):
             queryset = queryset.filter(title=title)
         return queryset
     
-     def get(self,request):
-          queryset = self.get_queryset()
-          serializer = BookSerializer(queryset, many=True)
-          return Response(serializer.data)
+     def get(self,request):                
+            queryset = self.get_queryset()
+            serializer = BookSerializer(queryset, many=True)     
+            content_type = request.META.get('CONTENT_TYPE')
+           
+            if content_type == 'application/xml':
+             print("XMLRenderer")
+             renderer = XMLRenderer()
+            else:
+             print("JSONRenderer")
+             renderer = JSONRenderer()          
+            response = Response(serializer.data)
+            response.accepted_renderer = renderer
+            response.accepted_media_type = 'application/json'#renderer.media_type
+            response.renderer_context = self.get_renderer_context()
+        
+            return response
+                           
+             
 
 class BookCRUDView(APIView): 
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]       
-  
+    renderer_classes = [XMLRenderer,JSONRenderer] 
     
     def post(self,request):
         data = json.loads(request.body)         
@@ -62,7 +85,7 @@ class BookCRUDView(APIView):
         serializer = BookSerializer(book)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
  
-    def get(self,request):
+    def get(self,request):          
           queryset = Book.objects.all()
           serializer = BookSerializer(queryset, many=True)
           return Response(serializer.data)
@@ -81,5 +104,14 @@ class BookCRUDView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)      
         serializer = BookSerializer(book,many=False)    
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def delete(self,request):
+         data = json.loads(request.body) 
+         user = request.user
+         book = Book.objects.filter(author=user,title=data['title'])
+         if len(book)>0:
+          book[0].delete()
+          return Response("Book DELETED", status=status.HTTP_201_CREATED)
+         return Response("Book does not exist.", status=status.HTTP_201_CREATED)
+         
 
 
