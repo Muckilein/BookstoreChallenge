@@ -32,7 +32,7 @@ class BookView(APIView):
      permission_classes = []
      renderer_classes = [XMLRenderer,JSONRenderer] #,
    
-     
+     #http://127.0.0.1:8000/book/?title=Hallo
      def get_queryset(self):       
         queryset = Book.objects.all()
         title = self.request.query_params.get('title')

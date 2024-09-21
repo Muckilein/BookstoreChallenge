@@ -17,16 +17,14 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields ='__all__'
+        
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-
         # Add custom claims
         token['username'] = user.username
         token['email'] = user.email
-        # ...
-
         return token
 
 
@@ -53,8 +51,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
-            author_pseudonym=validated_data['author_pseudonym']
-           
+            author_pseudonym=validated_data['author_pseudonym']           
         )
 
         user.set_password(validated_data['password'])
